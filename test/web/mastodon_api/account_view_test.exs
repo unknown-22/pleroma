@@ -28,6 +28,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       avatar_static: "http://localhost:4001/images/avi.png",
       header: "http://localhost:4001/images/banner.png",
       header_static: "http://localhost:4001/images/banner.png",
+      emojis: [],
       source: %{
         note: "",
         privacy: "public",

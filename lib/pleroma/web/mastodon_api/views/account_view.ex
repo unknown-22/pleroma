@@ -30,6 +30,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       avatar_static: image,
       header: header,
       header_static: header,
+      emojis: [],
       source: %{
         note: "",
         privacy: "public",

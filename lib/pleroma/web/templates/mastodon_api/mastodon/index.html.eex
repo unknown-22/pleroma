@@ -1,3 +1,4 @@
+<% flavour="vanilla" %>
 <!DOCTYPE html>
 <html lang='en'>
 <head>
@@ -6,18 +7,28 @@
 </title>
 <meta charset='utf-8'>
 <meta content='width=device-width, initial-scale=1' name='viewport'>
-<link rel="icon" type="image/png" href="/favicon.png"/>
-<link rel="stylesheet" media="all" href="/packs/common.css" />
-<link rel="stylesheet" media="all" href="/packs/default.css" />
+<meta name="csrf-param" content="authenticity_token" />
+<meta name='csrf-token' content=''/>
+<meta content='#282c37' name='theme-color'>
 
-<script src="/packs/common.js"></script>
-<script src="/packs/locale_en.js"></script>
-<link as='script' crossorigin='anonymous' href='/packs/features/getting_started.js' rel='preload'>
-<link as='script' crossorigin='anonymous' href='/packs/features/compose.js' rel='preload'>
-<link as='script' crossorigin='anonymous' href='/packs/features/home_timeline.js' rel='preload'>
-<link as='script' crossorigin='anonymous' href='/packs/features/notifications.js' rel='preload'>
+<link rel="icon" type="image/png" href="/favicon.png"/>
+
+<script src="/packs/locales.js" crossorigin='anonymous'></script>
+<script src="/packs/locales/<%= flavour %>/en.js" crossorigin='anonymous'></script>
+
+<script src='/packs/core/common.js' crossorigin='anonymous'></script>
+<link rel="stylesheet" media="all" href="/packs/core/common.css" />
+
+<link as='script' crossorigin='anonymous' href='/packs/flavours/<%= flavour %>/common.js' rel='preload'>
+<link rel="stylesheet" media="screen" href="/packs/skins/<%= flavour %>/contrast/common.css" />
+
+<script src="/packs/flavours/<%= flavour %>/home.js"></script>
+<link as='script' crossorigin='anonymous' href='/packs/flavours/<%= flavour %>/async/drawer.js' rel='preload'>
+<link as='script' crossorigin='anonymous' href='/packs/flavours/<%= flavour %>/async/getting_started.js' rel='preload'>
+<link as='script' crossorigin='anonymous' href='/packs/flavours/<%= flavour %>/async/home_timeline.js' rel='preload'>
+<link as='script' crossorigin='anonymous' href='/packs/flavours/<%= flavour %>/async/notifications.js' rel='preload'>
+
 <script id='initial-state' type='application/json'><%= raw @initial_state %></script>
-<script src="/packs/application.js"></script>
 </head>
 <body class='app-body no-reduce-motion'>
   <div class='app-holder' data-props='{&quot;locale&quot;:&quot;en&quot;}' id='mastodon'>

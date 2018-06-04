@@ -164,6 +164,10 @@ defmodule Pleroma.Web.Router do
     get("/accounts/:id/following", MastodonAPIController, :following)
     get("/accounts/:id", MastodonAPIController, :user)
 
+    get("/trends", MastodonAPIController, :empty_array)
+
+    get("/bookmarks", MastodonAPIController, :empty_array)
+
     get("/search", MastodonAPIController, :search)
   end
 
