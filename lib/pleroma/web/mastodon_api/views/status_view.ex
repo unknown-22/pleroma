@@ -150,6 +150,63 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     }
   end
 
+  def render("status.json", %{activity: %{data: %{"object" => object}} = activity} = opts) do
+    created_at = Utils.to_masto_date(object["published"]) || "1970-01-01T00:00:00.000Z"
+
+    %{
+      id: to_string(activity.id),
+      uri: object,
+      url: object,
+      account: %{
+        id: 1,
+        username: "pleroma",
+        acct: "pleroma@pleroma.social",
+        display_name: "Pleroma Error",
+        locked: false,
+        created_at: "1970-01-01T00:00:00.000Z",
+        followers_count: 1,
+        following_count: 1,
+        statuses_count: 1,
+        note: "This is not a real account",
+        url: "https://git.pleroma.social/pleroma/pleroma/issues/233",
+        avatar: "#{Web.base_url()}/images/avi.png",
+        avatar_static: "#{Web.base_url()}/images/avi.png",
+        header: "#{Web.base_url()}/images/banner.png",
+        header_static: "#{Web.base_url()}/images/banner.png",
+        emojis: [],
+        fields: [],
+        source: %{
+          note: "",
+          privacy: "public",
+          sensitive: "false"
+        }
+      },
+      in_reply_to_id: nil,
+      in_reply_to_account_id: nil,
+      reblog: nil,
+      content: "Could not render this Activity. Missing StatusView.",
+      created_at: created_at,
+      reblogs_count: 0,
+      favourites_count: 0,
+      reblogged: false,
+      favourited: false,
+      muted: false,
+      sensitive: false,
+      spoiler_text: "",
+      # let’s not share bugs
+      visibility: "private",
+      media_attachments: [],
+      mentions: [],
+      tags: [],
+      application: %{
+        name: "Web",
+        website: nil
+      },
+      language: nil,
+      emojis: []
+    }
+  end
+
   def render("attachment.json", %{attachment: attachment}) do
     [%{"mediaType" => media_type, "href" => href} | _] = attachment["url"]
 
