@@ -148,7 +148,7 @@ defmodule Pleroma.User do
       |> validate_confirmation(:password)
       |> unique_constraint(:email)
       |> unique_constraint(:nickname)
-      |> validate_format(:nickname, ~r/^[a-zA-Z\d]+$/)
+      |> validate_format(:nickname, ~r/^[a-zA-Z\d_]+$/)
       |> validate_format(:email, @email_regex)
       |> validate_length(:bio, max: 1000)
       |> validate_length(:name, min: 1, max: 100)
