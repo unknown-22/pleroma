@@ -5,11 +5,23 @@ defmodule Pleroma.Web.Router do
 
   @instance Application.get_env(:pleroma, :instance)
   @federating Keyword.get(@instance, :federating)
+  @allow_relay Keyword.get(@instance, :allow_relay)
   @public Keyword.get(@instance, :public)
   @registrations_open Keyword.get(@instance, :registrations_open)
 
-  def user_fetcher(username) do
-    {:ok, Repo.get_by(User, %{nickname: username})}
+  def user_fetcher(username_or_email) do
+    {
+      :ok,
+      cond do
+        # First, try logging in as if it was a name
+        user = Repo.get_by(User, %{nickname: username_or_email}) ->
+          user
+
+        # If we get nil, we try using it as an email
+        user = Repo.get_by(User, %{email: username_or_email}) ->
+          user
+      end
+    }
   end
 
   pipeline :api do
@@ -282,6 +294,10 @@ defmodule Pleroma.Web.Router do
     get("/externalprofile/show", TwitterAPI.Controller, :external_profile)
   end
 
+  pipeline :ap_relay do
+    plug(:accepts, ["activity+json"])
+  end
+
   pipeline :ostatus do
     plug(:accepts, ["xml", "atom", "html", "activity+json"])
   end
@@ -318,6 +334,13 @@ defmodule Pleroma.Web.Router do
   end
 
   if @federating do
+    if @allow_relay do
+      scope "/relay", Pleroma.Web.ActivityPub do
+        pipe_through(:ap_relay)
+        get("/", ActivityPubController, :relay)
+      end
+    end
+
     scope "/", Pleroma.Web.ActivityPub do
       pipe_through(:activitypub)
       post("/users/:nickname/inbox", ActivityPubController, :inbox)

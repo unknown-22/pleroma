@@ -12,7 +12,9 @@ config :pleroma, Pleroma.Repo, types: Pleroma.PostgresTypes
 
 config :pleroma, Pleroma.Upload,
   uploads: "uploads",
-  strip_exif: false
+  strip_exif: false,
+  use_s3: false,
+  s3_bucket: nil
 
 config :pleroma, :emoji, shortcode_globs: ["/emoji/custom/**/*.png"]
 
@@ -61,6 +63,7 @@ config :pleroma, :instance,
   upload_limit: 16_000_000,
   registrations_open: true,
   federating: true,
+  allow_relay: true,
   rewrite_policy: Pleroma.Web.ActivityPub.MRF.NoOpPolicy,
   public: true,
   quarantined_instances: []
@@ -72,10 +75,6 @@ config :pleroma, :fe,
   redirect_root_no_login: "/main/all",
   redirect_root_login: "/main/friends",
   show_instance_panel: true,
-  show_who_to_follow_panel: false,
-  who_to_follow_provider:
-    "https://vinayaka.distsn.org/cgi-bin/vinayaka-user-match-osa-api.cgi?{{host}}+{{user}}",
-  who_to_follow_link: "https://vinayaka.distsn.org/?{{host}}+{{user}}",
   scope_options_enabled: false,
   collapse_message_with_subject: false
 
