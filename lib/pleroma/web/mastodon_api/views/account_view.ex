@@ -4,6 +4,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.MediaProxy
+  alias Pleroma.HTML
 
   def render("accounts.json", %{users: users} = opts) do
     render_many(users, AccountView, "account.json", opts)
@@ -13,6 +14,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     image = User.avatar_url(user) |> MediaProxy.url()
     header = User.banner_url(user) |> MediaProxy.url()
     user_info = User.user_info(user)
+    bot = (user.info["source_data"]["type"] || "Person") in ["Application", "Service"]
 
     emojis =
       (user.info["source_data"]["tag"] || [])
@@ -26,6 +28,11 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         }
       end)
 
+    fields =
+      (user.info["source_data"]["attachment"] || [])
+      |> Enum.filter(fn %{"type" => t} -> t == "PropertyValue" end)
+      |> Enum.map(fn fields -> Map.take(fields, ["name", "value"]) end)
+
     %{
       id: to_string(user.id),
       username: username_from_nickname(user.nickname),
@@ -36,18 +43,19 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       followers_count: user_info.follower_count,
       following_count: user_info.following_count,
       statuses_count: user_info.note_count,
-      note: HtmlSanitizeEx.basic_html(user.bio) || "",
+      note: HTML.filter_tags(user.bio) || "",
       url: user.ap_id,
       avatar: image,
       avatar_static: image,
       header: header,
       header_static: header,
       emojis: emojis,
-      fields: [],
+      fields: fields,
+      bot: bot,
       source: %{
         note: "",
-        privacy: "public",
-        sensitive: "false"
+        privacy: user_info.default_scope,
+        sensitive: false
       }
     }
   end
@@ -68,8 +76,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       followed_by: User.following?(target, user),
       blocking: User.blocks?(user, target),
       muting: false,
+      muting_notifications: false,
       requested: false,
-      domain_blocking: false
+      domain_blocking: false,
+      showing_reblogs: false
     }
   end
 

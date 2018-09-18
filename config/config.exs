@@ -11,10 +11,16 @@ config :pleroma, ecto_repos: [Pleroma.Repo]
 config :pleroma, Pleroma.Repo, types: Pleroma.PostgresTypes
 
 config :pleroma, Pleroma.Upload,
+  uploader: Pleroma.Uploaders.Local,
+  strip_exif: false
+
+config :pleroma, Pleroma.Uploaders.Local,
   uploads: "uploads",
-  strip_exif: false,
-  use_s3: false,
-  s3_bucket: nil
+  uploads_url: "{{base_url}}/media/{{file}}"
+
+config :pleroma, Pleroma.Uploaders.S3,
+  bucket: nil,
+  public_endpoint: "https://s3.amazonaws.com"
 
 config :pleroma, :emoji, shortcode_globs: ["/emoji/custom/**/*.png"]
 
@@ -26,7 +32,8 @@ config :pleroma, Pleroma.Web.Endpoint,
   protocol: "https",
   secret_key_base: "aK4Abxf29xU9TTDKre9coZPUgevcVCFQJe/5xP/7Lt4BEif6idBIbjupVbOrbKxl",
   render_errors: [view: Pleroma.Web.ErrorView, accepts: ~w(json)],
-  pubsub: [name: Pleroma.PubSub, adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: Pleroma.PubSub, adapter: Phoenix.PubSub.PG2],
+  secure_cookie_flag: true
 
 # Configures Elixir's Logger
 config :logger, :console,
@@ -66,11 +73,26 @@ config :pleroma, :instance,
   allow_relay: true,
   rewrite_policy: Pleroma.Web.ActivityPub.MRF.NoOpPolicy,
   public: true,
-  quarantined_instances: []
+  quarantined_instances: [],
+  managed_config: true
+
+config :pleroma, :markup,
+  # XXX - unfortunately, inline images must be enabled by default right now, because
+  # of custom emoji.  Issue #275 discusses defanging that somehow.
+  allow_inline_images: true,
+  allow_headings: false,
+  allow_tables: false,
+  allow_fonts: false,
+  scrub_policy: [
+    Pleroma.HTML.Transform.MediaProxy,
+    Pleroma.HTML.Scrubber.Default
+  ]
 
 config :pleroma, :fe,
   theme: "pleroma-dark",
   logo: "/static/logo.png",
+  logo_mask: true,
+  logo_margin: "0.1em",
   background: "/static/aurora_borealis.jpg",
   redirect_root_no_login: "/main/all",
   redirect_root_login: "/main/friends",
@@ -84,6 +106,8 @@ config :pleroma, :activitypub,
   outgoing_blocks: true
 
 config :pleroma, :user, deny_follow_blocked: true
+
+config :pleroma, :mrf_normalize_markup, scrub_policy: Pleroma.HTML.Scrubber.Default
 
 config :pleroma, :mrf_rejectnonpublic,
   allow_followersonly: false,
@@ -118,6 +142,7 @@ config :pleroma, :suggestions,
   third_party_engine:
     "http://vinayaka.distsn.org/cgi-bin/vinayaka-user-match-suggestions-api.cgi?{{host}}+{{user}}",
   timeout: 300_000,
+  limit: 23,
   web: "https://vinayaka.distsn.org/?{{host}}+{{user}}"
 
 # Import environment specific config. This must remain at the bottom

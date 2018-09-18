@@ -60,16 +60,14 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          :ok <- check_actor_is_active(map["actor"]),
          {:ok, map} <- MRF.filter(map),
          :ok <- insert_full_object(map) do
-      {recipients, recipients_to, recipients_cc} = get_recipients(map)
+      {recipients, _, _} = get_recipients(map)
 
       {:ok, activity} =
         Repo.insert(%Activity{
           data: map,
           local: local,
           actor: map["actor"],
-          recipients: recipients,
-          recipients_to: recipients_to,
-          recipients_cc: recipients_cc
+          recipients: recipients
         })
 
       Notification.create_notifications(activity)
@@ -94,6 +92,11 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         if activity.local do
           Pleroma.Web.Streamer.stream("public:local", activity)
         end
+
+        activity.data["object"]
+        |> Map.get("tag", [])
+        |> Enum.filter(fn tag -> is_bitstring(tag) end)
+        |> Enum.map(fn tag -> Pleroma.Web.Streamer.stream("hashtag:" <> tag, activity) end)
 
         if activity.data["object"]["attachment"] != [] do
           Pleroma.Web.Streamer.stream("public:media", activity)
@@ -415,11 +418,11 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       activity in query,
       where:
         fragment(
-          "(? && ?) or (? && ?)",
+          "(?->'to' \\?| ?) or (?->'cc' \\?| ?)",
+          activity.data,
           ^recipients_to,
-          activity.recipients_to,
-          ^recipients_cc,
-          activity.recipients_cc
+          activity.data,
+          ^recipients_cc
         )
     )
   end
@@ -749,6 +752,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
              "actor" => data["attributedTo"],
              "object" => data
            },
+           :ok <- Transmogrifier.contain_origin(id, params),
            {:ok, activity} <- Transmogrifier.handle_incoming(params) do
         {:ok, Object.normalize(activity.data["object"])}
       else
