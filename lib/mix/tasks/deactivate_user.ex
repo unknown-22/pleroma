@@ -2,7 +2,7 @@ defmodule Mix.Tasks.DeactivateUser do
   use Mix.Task
   alias Pleroma.User
 
-  @shortdoc "Toggle deactivation status for a user"
+  @shortdoc "Deactivate a user"
   def run([nickname]) do
     Mix.Task.run("app.start")
 

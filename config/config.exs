@@ -20,11 +20,28 @@ config :pleroma, Pleroma.Uploaders.Local,
 
 config :pleroma, Pleroma.Uploaders.S3,
   bucket: nil,
-  public_endpoint: "https://s3.amazonaws.com"
+  public_endpoint: "https://s3.amazonaws.com",
+  force_media_proxy: false
 
 config :pleroma, :emoji, shortcode_globs: ["/emoji/custom/**/*.png"]
 
-config :pleroma, :uri_schemes, additionnal_schemes: []
+config :pleroma, :uri_schemes,
+  valid_schemes: [
+    "https",
+    "http",
+    "dat",
+    "dweb",
+    "gopher",
+    "ipfs",
+    "ipns",
+    "irc",
+    "ircs",
+    "magnet",
+    "mailto",
+    "mumble",
+    "ssb",
+    "xmpp"
+  ]
 
 # Configures the endpoint
 config :pleroma, Pleroma.Web.Endpoint,
@@ -68,13 +85,23 @@ config :pleroma, :instance,
   description: "A Pleroma instance, an alternative fediverse server",
   limit: 5000,
   upload_limit: 16_000_000,
+  avatar_upload_limit: 2_000_000,
+  background_upload_limit: 4_000_000,
+  banner_upload_limit: 4_000_000,
   registrations_open: true,
   federating: true,
   allow_relay: true,
   rewrite_policy: Pleroma.Web.ActivityPub.MRF.NoOpPolicy,
   public: true,
   quarantined_instances: [],
-  managed_config: true
+  managed_config: true,
+  allowed_post_formats: [
+    "text/plain",
+    "text/html",
+    "text/markdown"
+  ],
+  finmoji_enabled: true,
+  mrf_transparency: true
 
 config :pleroma, :markup,
   # XXX - unfortunately, inline images must be enabled by default right now, because
@@ -98,12 +125,16 @@ config :pleroma, :fe,
   redirect_root_login: "/main/friends",
   show_instance_panel: true,
   scope_options_enabled: false,
-  collapse_message_with_subject: false
+  formatting_options_enabled: false,
+  collapse_message_with_subject: false,
+  hide_post_stats: false,
+  hide_user_stats: false
 
 config :pleroma, :activitypub,
   accept_blocks: true,
   unfollow_blocked: true,
-  outgoing_blocks: true
+  outgoing_blocks: true,
+  follow_handshake_timeout: 500
 
 config :pleroma, :user, deny_follow_blocked: true
 

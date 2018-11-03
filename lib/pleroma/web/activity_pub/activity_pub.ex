@@ -44,7 +44,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   defp check_actor_is_active(actor) do
     if not is_nil(actor) do
       with user <- User.get_cached_by_ap_id(actor),
-           nil <- user.info["deactivated"] do
+           false <- !!user.info["deactivated"] do
         :ok
       else
         _e -> :reject
@@ -273,8 +273,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       "to" => [user.follower_address, "https://www.w3.org/ns/activitystreams#Public"]
     }
 
-    with Repo.delete(object),
-         Repo.delete_all(Activity.all_non_create_by_object_ap_id_q(id)),
+    with {:ok, _} <- Object.delete(object),
          {:ok, activity} <- insert(data, local),
          :ok <- maybe_federate(activity),
          {:ok, _actor} <- User.decrease_note_count(user) do
@@ -575,9 +574,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> Enum.reverse()
   end
 
-  def upload(file) do
-    data = Upload.store(file, Application.get_env(:pleroma, :instance)[:dedupe_media])
-    Repo.insert(%Object{data: data})
+  def upload(file, size_limit \\ nil) do
+    with data <-
+           Upload.store(file, Application.get_env(:pleroma, :instance)[:dedupe_media], size_limit),
+         false <- is_nil(data) do
+      Repo.insert(%Object{data: data})
+    end
   end
 
   def user_data_from_user_object(data) do
@@ -683,7 +685,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       (Pleroma.Web.Salmon.remote_users(activity) ++ followers)
       |> Enum.filter(fn user -> User.ap_enabled?(user) end)
       |> Enum.map(fn %{info: %{"source_data" => data}} ->
-        (data["endpoints"] && data["endpoints"]["sharedInbox"]) || data["inbox"]
+        (is_map(data["endpoints"]) && Map.get(data["endpoints"], "sharedInbox")) || data["inbox"]
       end)
       |> Enum.uniq()
       |> Enum.filter(fn inbox -> should_federate?(inbox, public) end)
@@ -756,6 +758,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
            {:ok, activity} <- Transmogrifier.handle_incoming(params) do
         {:ok, Object.normalize(activity.data["object"])}
       else
+        {:error, {:reject, nil}} ->
+          {:reject, nil}
+
         object = %Object{} ->
           {:ok, object}
 
@@ -783,5 +788,39 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     x = [user.ap_id | user.following]
     y = activity.data["to"] ++ (activity.data["cc"] || [])
     visible_for_user?(activity, nil) || Enum.any?(x, &(&1 in y))
+  end
+
+  # guard
+  def entire_thread_visible_for_user?(nil, user), do: false
+
+  # child
+  def entire_thread_visible_for_user?(
+        %Activity{data: %{"object" => %{"inReplyTo" => parent_id}}} = tail,
+        user
+      )
+      when is_binary(parent_id) do
+    parent = Activity.get_in_reply_to_activity(tail)
+    visible_for_user?(tail, user) && entire_thread_visible_for_user?(parent, user)
+  end
+
+  # root
+  def entire_thread_visible_for_user?(tail, user), do: visible_for_user?(tail, user)
+
+  # filter out broken threads
+  def contain_broken_threads(%Activity{} = activity, %User{} = user) do
+    entire_thread_visible_for_user?(activity, user)
+  end
+
+  # do post-processing on a specific activity
+  def contain_activity(%Activity{} = activity, %User{} = user) do
+    contain_broken_threads(activity, user)
+  end
+
+  # do post-processing on a timeline
+  def contain_timeline(timeline, user) do
+    timeline
+    |> Enum.filter(fn activity ->
+      contain_activity(activity, user)
+    end)
   end
 end

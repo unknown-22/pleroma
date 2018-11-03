@@ -3,6 +3,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.TwitterAPI.UserView
   alias Pleroma.Web.{OStatus, CommonAPI}
+  alias Pleroma.Web.MediaProxy
   import Ecto.Query
 
   @instance Application.get_env(:pleroma, :instance)
@@ -20,10 +21,15 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
     end
   end
 
+  @activitypub Application.get_env(:pleroma, :activitypub)
+  @follow_handshake_timeout Keyword.get(@activitypub, :follow_handshake_timeout)
+
   def follow(%User{} = follower, params) do
     with {:ok, %User{} = followed} <- get_user(params),
          {:ok, follower} <- User.maybe_direct_follow(follower, followed),
-         {:ok, activity} <- ActivityPub.follow(follower, followed) do
+         {:ok, activity} <- ActivityPub.follow(follower, followed),
+         {:ok, follower, followed} <-
+           User.wait_and_refresh(@follow_handshake_timeout, follower, followed) do
       {:ok, follower, followed, activity}
     else
       err -> err
@@ -92,7 +98,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
     {:ok, object} = ActivityPub.upload(file)
 
     url = List.first(object.data["url"])
-    href = url["href"]
+    href = url["href"] |> MediaProxy.url()
     type = url["mediaType"]
 
     case format do

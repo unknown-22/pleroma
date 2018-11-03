@@ -5,7 +5,6 @@ defmodule Pleroma.Web.Router do
 
   @instance Application.get_env(:pleroma, :instance)
   @federating Keyword.get(@instance, :federating)
-  @allow_relay Keyword.get(@instance, :allow_relay)
   @public Keyword.get(@instance, :public)
   @registrations_open Keyword.get(@instance, :registrations_open)
 
@@ -119,6 +118,7 @@ defmodule Pleroma.Web.Router do
     post("/accounts/:id/unblock", MastodonAPIController, :unblock)
     post("/accounts/:id/mute", MastodonAPIController, :relationship_noop)
     post("/accounts/:id/unmute", MastodonAPIController, :relationship_noop)
+    get("/accounts/:id/lists", MastodonAPIController, :account_lists)
 
     get("/follow_requests", MastodonAPIController, :follow_requests)
     post("/follow_requests/:id/authorize", MastodonAPIController, :authorize_follow_request)
@@ -173,7 +173,7 @@ defmodule Pleroma.Web.Router do
 
     get("/suggestions", MastodonAPIController, :suggestions)
 
-    get("/filters", MastodonAPIController, :filters)
+    get("/endorsements", MastodonAPIController, :empty_array)
   end
 
   scope "/api/web", Pleroma.Web.MastodonAPI do
@@ -353,11 +353,9 @@ defmodule Pleroma.Web.Router do
   end
 
   if @federating do
-    if @allow_relay do
-      scope "/relay", Pleroma.Web.ActivityPub do
-        pipe_through(:ap_relay)
-        get("/", ActivityPubController, :relay)
-      end
+    scope "/relay", Pleroma.Web.ActivityPub do
+      pipe_through(:ap_relay)
+      get("/", ActivityPubController, :relay)
     end
 
     scope "/", Pleroma.Web.ActivityPub do
@@ -400,6 +398,8 @@ defmodule Pleroma.Web.Router do
   scope "/", Fallback do
     get("/registration/:token", RedirectController, :registration_page)
     get("/*path", RedirectController, :redirector)
+
+    options("/*path", RedirectController, :empty)
   end
 end
 
@@ -416,5 +416,11 @@ defmodule Fallback.RedirectController do
 
   def registration_page(conn, params) do
     redirector(conn, params)
+  end
+
+  def empty(conn, _params) do
+    conn
+    |> put_status(204)
+    |> text("")
   end
 end
