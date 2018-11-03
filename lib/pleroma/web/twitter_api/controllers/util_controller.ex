@@ -176,7 +176,10 @@ defmodule Pleroma.Web.TwitterAPI.UtilController do
           chatDisabled: !Keyword.get(@instance_chat, :enabled),
           showInstanceSpecificPanel: Keyword.get(@instance_fe, :show_instance_panel),
           scopeOptionsEnabled: Keyword.get(@instance_fe, :scope_options_enabled),
-          collapseMessageWithSubject: Keyword.get(@instance_fe, :collapse_message_with_subject)
+          formattingOptionsEnabled: Keyword.get(@instance_fe, :formatting_options_enabled),
+          collapseMessageWithSubject: Keyword.get(@instance_fe, :collapse_message_with_subject),
+          hidePostStats: Keyword.get(@instance_fe, :hide_post_stats),
+          hideUserStats: Keyword.get(@instance_fe, :hide_user_stats)
         }
 
         managed_config = Keyword.get(@instance, :managed_config)
@@ -222,7 +225,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilController do
       |> Enum.map(fn account ->
         with %User{} = follower <- User.get_cached_by_ap_id(user.ap_id),
              %User{} = followed <- User.get_or_fetch(account),
-             {:ok, follower} <- User.follow(follower, followed) do
+             {:ok, follower} <- User.maybe_direct_follow(follower, followed) do
           ActivityPub.follow(follower, followed)
         else
           err -> Logger.debug("follow_import: following #{account} failed with #{inspect(err)}")
