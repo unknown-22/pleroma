@@ -6,16 +6,16 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
   alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.Federator
-  alias Pleroma.Config
 
   require Logger
 
   action_fallback(:errors)
 
+  plug(Pleroma.Web.FederatingPlug when action in [:inbox, :relay])
   plug(:relay_active? when action in [:relay])
 
   def relay_active?(conn, _) do
-    if Config.get([:instance, :allow_relay]) do
+    if Keyword.get(Application.get_env(:pleroma, :instance), :allow_relay) do
       conn
     else
       conn
